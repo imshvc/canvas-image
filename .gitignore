@@ -1,0 +1,21 @@
+# Dependencies
+node_modules
+
+# IDE
+.idea
+.vscode
+
+# dotenv variables
+.env
+.env.test
+
+# OS specific
+.DS_Store
+Thumbs.db
+ehthumbs.db
+ehthumbs_vista.db
+Image.db
+Video.db
+TVThumb.db
+musicThumbs.db
+desktop.ini
