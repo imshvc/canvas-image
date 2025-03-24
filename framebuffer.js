@@ -15,13 +15,13 @@
 //   2025-03-18 11:40 AM
 //
 // Updated:
-//   2025-03-23 10:12 AM
+//   2025-03-24 02:44 AM
 //
 // Repository:
 //   https://github.com/framebuffer-js/framebuffer-js
 //
 // Version:
-//   20250323 (Sunday, March 23, 2025)
+//   20250324 (Monday, March 24, 2025)
 //
 // License:
 //   See LICENSE file
@@ -33,28 +33,24 @@
 class Framebuffer {
   /**
    * Version string - https://calver.org/
-   *
    * @type {string}
    */
-  static version = '20250323';
+  static version = '20250324';
 
   /**
    * Canvas element.
-   *
    * @type {?HTMLCanvasElement}
    */
   canvas = null;
 
   /**
    * Resource width.
-   *
    * @type {number}
    */
   width = 0;
 
   /**
    * Resource height.
-   *
    * @type {number}
    */
   height = 0;
@@ -67,7 +63,6 @@ class Framebuffer {
 
   /**
    * ImageData object.
-   *
    * @type {?ImageData}
    */
   image = null;
@@ -86,11 +81,10 @@ class Framebuffer {
   updated = 0;
 
   /**
-   * Property in use by the static method
-   * 'loadImage' to signal when the image
-   * has loaded or not.
+   * Property only used by the static
+   * method 'loadImage' and its callback.
    */
-  loaded = true;
+  loaded = false;
 
   /**
    * Resource locking that prevents accidental
@@ -109,21 +103,18 @@ class Framebuffer {
 
   /**
    * Error string.
-   *
    * @type {?string}
    */
   error = null;
 
   /**
    * HTML element containing the spawned canvas.
-   *
    * @type {?HTMLElement}
    */
   container = null;
 
   /**
    * Create a Framebuffer resource.
-   *
    * @param {number} width Resource width.
    * @param {number} height Resource height.
    * @return {Framebuffer} The Framebuffer resource.
@@ -198,6 +189,62 @@ class Framebuffer {
 
     // Synchronize
     fb.sync();
+
+    return fb;
+  }
+
+  /**
+   * Create a resource from an asynchronously loaded image.
+   * @param {?string} path Path (relative or absolute) or a URL to an image.
+   * @param {?function} callback Event handler for 'load' and 'error'
+   *   - null fallbacks to a built-in handler (default).
+   * @param {number} height Resource height.
+   * @return {Framebuffer} The Framebuffer resource.
+   */
+  static loadImage(path = null, callback = null) {
+    if (path === null) {
+      return null;
+    }
+
+    let hasCallback = typeof callback === 'function';
+
+    // Dummy resource
+    let fb = Framebuffer.create(1, 1).lock();
+
+    let img = new Image();
+
+    // Event handler
+    img.onload = function() {
+      let width = img.width;
+      let height = img.height;
+
+      fb.loaded = true;
+
+      fb.canvas.width = width;
+      fb.canvas.height = height;
+      fb.width = width;
+      fb.height = height;
+
+      fb.context.drawImage(img, 0, 0, width, height);
+      fb.image = fb.context.getImageData(0, 0, width, height);
+
+      fb.unlock();
+
+      if (hasCallback) {
+        callback(fb);
+      }
+    };
+
+    // Event handler
+    img.onerror = function() {
+      fb.error = 'failed to load image on path: ' + path;
+
+      if (hasCallback) {
+        callback(fb);
+      }
+    };
+
+    img.src = path;
 
     return fb;
   }
