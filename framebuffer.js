@@ -15,7 +15,7 @@
 //   2025-03-18 11:40 AM
 //
 // Updated:
-//   2025-03-24 02:50 AM
+//   2025-03-24 04:24 PM
 //
 // Repository:
 //   https://github.com/framebuffer-js/framebuffer-js
@@ -81,10 +81,19 @@ class Framebuffer {
   updated = 0;
 
   /**
-   * Property only used by the static
-   * method 'load' and its callback.
+   * Path from which the image was requested.
+   * @type {?string}
    */
-  loaded = false;
+  path = null;
+
+  /**
+   * Resource is ready (initialized).
+   *
+   * This is used by the static method 'load'
+   * and its callback to signal that the image
+   * loaded or not.
+   */
+  ready = true;
 
   /**
    * Resource locking that prevents accidental
@@ -210,6 +219,8 @@ class Framebuffer {
 
     // Dummy resource
     let fb = Framebuffer.create(1, 1).lock();
+    fb.ready = false;
+    fb.path = path;
 
     let img = new Image();
 
@@ -218,7 +229,7 @@ class Framebuffer {
       let width = img.width;
       let height = img.height;
 
-      fb.loaded = true;
+      fb.ready = true;
 
       fb.canvas.width = width;
       fb.canvas.height = height;
@@ -237,7 +248,7 @@ class Framebuffer {
 
     // Event handler
     img.onerror = function() {
-      fb.error = 'failed to load image on path: ' + path;
+      fb.error = 'failed to load image';
 
       if (hasCallback) {
         callback(fb);
