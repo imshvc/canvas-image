@@ -15,7 +15,7 @@
 //   2025-03-18 11:40 AM
 //
 // Updated:
-//   2025-03-24 02:44 AM
+//   2025-03-24 02:50 AM
 //
 // Repository:
 //   https://github.com/framebuffer-js/framebuffer-js
@@ -82,7 +82,7 @@ class Framebuffer {
 
   /**
    * Property only used by the static
-   * method 'loadImage' and its callback.
+   * method 'load' and its callback.
    */
   loaded = false;
 
@@ -201,7 +201,7 @@ class Framebuffer {
    * @param {number} height Resource height.
    * @return {Framebuffer} The Framebuffer resource.
    */
-  static loadImage(path = null, callback = null) {
+  static load(path = null, callback = null) {
     if (path === null) {
       return null;
     }
