@@ -15,13 +15,13 @@
 //   2025-03-18 11:40 AM
 //
 // Updated:
-//   2025-03-24 04:24 PM
+//   2025-03-30 04:09 AM
 //
 // Repository:
 //   https://github.com/framebuffer-js/framebuffer-js
 //
 // Version:
-//   20250324 (Monday, March 24, 2025)
+//   20250330 (Sunday, March 30, 2025)
 //
 // License:
 //   See LICENSE file
@@ -35,7 +35,21 @@ class Framebuffer {
    * Version string - https://calver.org/
    * @type {string}
    */
-  static version = '20250324';
+  static version = '20250330';
+
+  /**
+   * How many resources were created.
+   *
+   * Used by create() to assign an id
+   * to a resource.
+   */
+  static count = 0;
+
+  /**
+   * Resource identifier.
+   * @type {number}
+   */
+  id = 0;
 
   /**
    * Canvas element.
@@ -60,6 +74,39 @@ class Framebuffer {
    * @type {?CanvasRenderingContext2D}
    */
   context = null;
+
+  /**
+   * Canvas context attributes.
+   * See: https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/getContext
+   * @type {object}
+   */
+  static contextAttributes = {
+    // Canvas contains an alpha channel.
+    //
+    // On 'false' the browser knows that the backdrop is always opaque,
+    // which can speed up drawing of transparent content and images.
+    //
+    // On 'true' certain hardware or software configurations may
+    // yield diminishing results in terms of rendering performance.
+    alpha: false,
+
+    // Color space of the rendering context.
+    colorSpace: 'srgb',
+
+    // A boolean value that hints the user agent to reduce the latency
+    // by desynchronizing the canvas paint cycle from the event loop.
+    //
+    // Disclaimer: Certain browsers have odd behavior where the canvas
+    // is absolutely invisible (due to software bugs, or hardware limits)
+    // therefore this option is set to 'false'.
+    desynchronized: false,
+
+    // Whether or not a lot of read-back operations are planned.
+    // This will force the use of a software (instead of hardware
+    // accelerated) 2D canvas and can save memory when calling
+    // 'getImageData()' frequently.
+    willReadFrequently: true
+  };
 
   /**
    * ImageData object.
@@ -123,13 +170,22 @@ class Framebuffer {
   container = null;
 
   /**
+   * Is the canvas element spawned in a container?
+   * True when 'container' is not null.
+   */
+  spawned = false;
+
+  /**
    * Create a Framebuffer resource.
    * @param {number} width Resource width.
    * @param {number} height Resource height.
    * @return {Framebuffer} The Framebuffer resource.
    */
-  static create(width = 0, height = 0) {
+  static create(width = 1, height = 1) {
+    let id = Framebuffer.count++;
     let fb = new Framebuffer;
+    fb.id = id;
+    Framebuffer.resources[id] = fb;
 
     // Truncate i.e. 2.345 -> 2
     width |= 0;
@@ -150,42 +206,16 @@ class Framebuffer {
 
     fb.width = width;
     fb.height = height;
-
     fb.canvas = document.createElement('canvas');
     fb.canvas.width = width;
     fb.canvas.height = height;
     fb.context = fb.canvas.getContext(
       '2d',
-      // Default Canvas Context Attributes
-      // See: https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/getContext
-      {
-        // Canvas contains an alpha channel.
-        //
-        // On 'false' the browser knows that the backdrop is always opaque,
-        // which can speed up drawing of transparent content and images.
-        //
-        // On 'true' certain hardware or software configurations may
-        // yield diminishing results in terms of rendering performance.
-        alpha: false,
-
-        // Color space of the rendering context.
-        colorSpace: 'srgb',
-
-        // A boolean value that hints the user agent to reduce the latency
-        // by desynchronizing the canvas paint cycle from the event loop.
-        //
-        // Disclaimer: Certain browsers have odd behavior where the canvas
-        // is absolutely invisible (due to software bugs, or hardware limits)
-        // therefore this option is set to 'false'.
-        desynchronized: false,
-
-        // Whether or not a lot of read-back operations are planned.
-        // This will force the use of a software (instead of hardware
-        // accelerated) 2D canvas and can save memory when calling
-        // 'getImageData()' frequently.
-        willReadFrequently: true
-      }
+      Framebuffer.contextAttributes
     );
+
+    // Reference to the Framebuffer instance
+    fb.canvas.framebuffer = fb;
 
     // Failed to create context - canvas not supported
     if (fb.context === null) {
@@ -195,8 +225,6 @@ class Framebuffer {
 
     fb.image = new ImageData(width, height);
     fb.image.data.fill(255);
-
-    // Synchronize
     fb.sync();
 
     return fb;
@@ -215,16 +243,19 @@ class Framebuffer {
       return null;
     }
 
-    let hasCallback = typeof callback === 'function';
+    // default callback no-op
+    if (typeof callback !== 'function') {
+      callback = function() {};
+    }
 
-    // Dummy resource
-    let fb = Framebuffer.create(1, 1).lock();
+    // create dummy resource
+    let fb = Framebuffer.create().lock();
     fb.ready = false;
     fb.path = path;
 
     let img = new Image();
 
-    // Event handler
+    // event handler for onload
     img.onload = function() {
       let width = img.width;
       let height = img.height;
@@ -240,19 +271,13 @@ class Framebuffer {
       fb.image = fb.context.getImageData(0, 0, width, height);
 
       fb.unlock();
-
-      if (hasCallback) {
-        callback(fb);
-      }
+      callback(fb);
     };
 
-    // Event handler
+    // event handler for onerror
     img.onerror = function() {
       fb.error = 'failed to load image';
-
-      if (hasCallback) {
-        callback(fb);
-      }
+      callback(fb);
     };
 
     img.src = path;
@@ -357,6 +382,7 @@ class Framebuffer {
 
     container.append(this.canvas);
     this.container = container;
+    this.spawned = true;
 
     return this;
   }
@@ -365,10 +391,12 @@ class Framebuffer {
    * Despawn a resource from its container.
    */
   despawn() {
+    // check instance state
     if (this.container === null) {
       return this;
     }
 
+    // check html element
     let container = this.canvas.parentElement;
 
     if (container === null) {
@@ -377,6 +405,7 @@ class Framebuffer {
 
     container.removeChild(this.canvas);
     this.container = null;
+    this.spawned = false;
 
     return this;
   }
@@ -438,6 +467,36 @@ class Framebuffer {
       fb.image.data[i + 1] = this.image.data[i + 1];
       fb.image.data[i + 2] = this.image.data[i + 2];
       fb.image.data[i + 3] = this.image.data[i + 3];
+    }
+
+    fb.sync();
+
+    return fb;
+  }
+
+  /**
+   * Get a color channel
+   * @param {number} channel Channel index (0=Red, 1=Green, 2=Blue, 3=Alpha) (default 0)
+   */
+  getChannel(channel = 0) {
+    channel |= 0;
+
+    // Min 0
+    if (0 > channel) {
+      channel = 0;
+    }
+
+    // Max 3
+    if (channel > 3) {
+      channel = 3;
+    }
+
+    let fb = Framebuffer.create(this.width, this.height);
+
+    for (let i = 0; i < fb.image.data.length; i += 4) {
+      fb.image.data[i + 0] = this.image.data[i + channel];
+      fb.image.data[i + 1] = this.image.data[i + channel];
+      fb.image.data[i + 2] = this.image.data[i + channel];
     }
 
     fb.sync();
