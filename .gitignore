@@ -19,3 +19,7 @@ Video.db
 TVThumb.db
 musicThumbs.db
 desktop.ini
+
+# Custom
+examples
+tests
