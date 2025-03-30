@@ -15,7 +15,7 @@
 //   2025-03-18 11:40 AM
 //
 // Updated:
-//   2025-03-30 04:11 AM
+//   2025-03-30 09:27 PM
 //
 // Repository:
 //   https://github.com/framebuffer-js/framebuffer-js
@@ -27,8 +27,7 @@
 //   See LICENSE file
 
 /**
- * Class that is both a Framebuffer resource and a factory.
- * @class
+ * Framebuffer factory.
  */
 class Framebuffer {
   /**
@@ -38,10 +37,17 @@ class Framebuffer {
   static version = '20250330';
 
   /**
+   * Framebuffer resource object.
+   * @type {object}
+   */
+  static resource = {...new Framebuffer.prototype.constructor};
+
+  /**
    * How many resources were created.
    *
    * Used by create() to assign an id
    * to a resource.
+   * @type {number}
    */
   static count = 0;
 
@@ -116,6 +122,7 @@ class Framebuffer {
 
   /**
    * Unix timestamp at which the resource was created.
+   * @type {number}
    */
   created = 0;
 
@@ -124,6 +131,8 @@ class Framebuffer {
    *
    * Defaults to zero to indicate that no
    * updates have occured since creation.
+   *
+   * @type {number}
    */
   updated = 0;
 
@@ -139,6 +148,8 @@ class Framebuffer {
    * This is used by the static method 'load'
    * and its callback to signal that the image
    * loaded or not.
+   *
+   * @type {boolean}
    */
   ready = true;
 
@@ -148,12 +159,15 @@ class Framebuffer {
    *
    * Custom class methods may choose to ignore
    * this state.
+   *
+   * @type {boolean}
    */
   locked = false;
 
   /**
    * Dirty bit is set when pixel values change,
    * and reset when sync() method is called.
+   * @type {boolean}
    */
   dirty = false;
 
@@ -172,6 +186,7 @@ class Framebuffer {
   /**
    * Is the canvas element spawned in a container?
    * True when 'container' is not null.
+   * @type {boolean}
    */
   spawned = false;
 
@@ -179,12 +194,14 @@ class Framebuffer {
    * Create a Framebuffer resource.
    * @param {number} width Resource width.
    * @param {number} height Resource height.
-   * @return {Framebuffer} The Framebuffer resource.
+   * @returns {Framebuffer}
    */
   static create(width = 1, height = 1) {
-    let id = Framebuffer.count++;
-    let fb = new Framebuffer;
-    fb.id = id;
+    let fb = Object.setPrototypeOf(
+      Object.assign({}, Framebuffer.resource),
+      Framebuffer.prototype
+    );
+    fb.id = Framebuffer.count++;
 
     // Truncate i.e. 2.345 -> 2
     width |= 0;
@@ -230,12 +247,12 @@ class Framebuffer {
   }
 
   /**
-   * Create a resource from an asynchronously loaded image.
+   * Create a Framebuffer resource from an asynchronously loaded image.
    * @param {?string} path Path (relative or absolute) or a URL to an image.
    * @param {?function} callback Event handler for 'load' and 'error'
    *   - null fallbacks to a built-in handler (default).
    * @param {number} height Resource height.
-   * @return {Framebuffer} The Framebuffer resource.
+   * @returns {Framebuffer}
    */
   static load(path = null, callback = null) {
     if (path === null) {
@@ -286,6 +303,7 @@ class Framebuffer {
 
   /**
    * Synchronize ImageData to the Canvas.
+   * @returns {Framebuffer}
    */
   sync() {
     this.context.putImageData(this.image, 0, 0);
@@ -296,6 +314,7 @@ class Framebuffer {
 
   /**
    * Set RGB pixel color at X and Y coordinates.
+   * @returns {Framebuffer}
    */
   setColor(x, y, r, g, b) {
     if (this.locked) {
@@ -318,6 +337,7 @@ class Framebuffer {
 
   /**
    * Get RGB pixel color at X and Y coordinates.
+   * @returns {array<number>} An array containing red, green, and blue color values.
    */
   getColor(x, y) {
     x |= 0;
@@ -334,6 +354,7 @@ class Framebuffer {
 
   /**
    * Set alpha value at X and Y coordinates.
+   * @returns {Framebuffer}
    */
   setAlpha(x, y, a) {
     if (this.locked) {
@@ -354,6 +375,7 @@ class Framebuffer {
 
   /**
    * Get alpha value at X and Y coordinates.
+   * @returns {number}
    */
   getAlpha(x, y) {
     x |= 0;
@@ -367,6 +389,7 @@ class Framebuffer {
   /**
    * Spawn resource to a container element
    * @param {Element} container Element to which we spawn
+   * @returns {Framebuffer}
    */
   spawn(container = null) {
     if (container === null || container instanceof Element === false) {
@@ -388,6 +411,7 @@ class Framebuffer {
 
   /**
    * Despawn a resource from its container.
+   * @returns {Framebuffer}
    */
   despawn() {
     // check instance state
@@ -411,6 +435,7 @@ class Framebuffer {
 
   /**
    * Clear the canvas using a color (default black)
+   * @returns {Framebuffer}
    */
   clear(r = 0, g = 0, b = 0) {
     if (this.locked) {
@@ -429,6 +454,7 @@ class Framebuffer {
   /**
    * Download resource image as a file.
    * @param {string} filename Name of the file
+   * @returns {Framebuffer}
    */
   save(filename = '0.png') {
     let a = document.createElement('a');
@@ -440,7 +466,8 @@ class Framebuffer {
   }
 
   /**
-   * Lock resource (read-only)
+   * Lock resource (read-only).
+   * @returns {Framebuffer}
    */
   lock() {
     this.locked = true;
@@ -449,6 +476,7 @@ class Framebuffer {
 
   /**
    * Unlock resource.
+   * @returns {Framebuffer}
    */
   unlock() {
     this.locked = false;
@@ -457,11 +485,12 @@ class Framebuffer {
 
   /**
    * Clone the Framebuffer into a new resource.
+   * @returns {Framebuffer}
    */
   clone() {
     let fb = Framebuffer.create(this.width, this.height);
 
-    for (let i = 0, j = this.image.data.length; i < j; i += 4) {
+    for (let i = 0; i < this.image.data.length; i += 4) {
       fb.image.data[i + 0] = this.image.data[i + 0];
       fb.image.data[i + 1] = this.image.data[i + 1];
       fb.image.data[i + 2] = this.image.data[i + 2];
@@ -474,8 +503,9 @@ class Framebuffer {
   }
 
   /**
-   * Get a color channel
+   * Get a color channel.
    * @param {number} channel Channel index (0=Red, 1=Green, 2=Blue, 3=Alpha) (default 0)
+   * @returns {Framebuffer}
    */
   getChannel(channel = 0) {
     channel |= 0;
@@ -501,5 +531,70 @@ class Framebuffer {
     fb.sync();
 
     return fb;
+  }
+
+  /**
+   * List of names for custom methods.
+   * @type {Set<string>}
+   */
+  static methods = new Set();
+
+  /**
+   * Define a method on the Framebuffer prototype
+   * after validation to extend functionality.
+   * Reserved names are not allowed, e.g. 'clone'.
+   * @param {string} name Method name.
+   * @param {?function} body Method implementation.
+   * @throws {string} When a required condition was not met.
+   * @returns {Framebuffer}
+   */
+  static defineMethod(name, body = null) {
+    // Specify name
+    if (typeof name !== 'string') {
+      throw 'specify name (string)';
+    }
+
+    // Duplicate method
+    if (Framebuffer.hasMethod(name)) {
+      throw 'duplicate method: ' + name;
+    }
+
+    // Reserved name
+    if (name in Framebuffer || name in Framebuffer.prototype || name in Framebuffer.resource) {
+      throw 'reserved name: ' + name
+    }
+
+    // Specify body
+    if (typeof body !== 'function') {
+      throw 'specify body (function)';
+    }
+
+    Framebuffer.methods.add(name);
+    Framebuffer.prototype[name] = body;
+
+    return this;
+  }
+
+  /**
+   * Delete a defined method.
+   * @param {string} name Method name.
+   * @returns {Framebuffer}
+   */
+  static deleteMethod(name) {
+    if (Framebuffer.hasMethod(name)) {
+      Framebuffer.methods.delete(name);
+      delete Framebuffer.prototype[name];
+    }
+
+    return this;
+  }
+
+  /**
+   * Returns true if a defined method exists.
+   * @param {string} name Method name.
+   * @returns {boolean}
+   */
+  static hasMethod(name) {
+    return Framebuffer.methods.has(name) && name in Framebuffer.prototype;
   }
 }
