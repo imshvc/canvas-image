@@ -15,7 +15,7 @@
 //   2025-03-18 11:40 AM
 //
 // Updated:
-//   2025-03-30 04:09 AM
+//   2025-03-30 04:11 AM
 //
 // Repository:
 //   https://github.com/framebuffer-js/framebuffer-js
@@ -185,7 +185,6 @@ class Framebuffer {
     let id = Framebuffer.count++;
     let fb = new Framebuffer;
     fb.id = id;
-    Framebuffer.resources[id] = fb;
 
     // Truncate i.e. 2.345 -> 2
     width |= 0;
