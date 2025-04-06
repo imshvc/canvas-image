@@ -1,3 +1,3 @@
-# Framebuffer.JS
+# canvas-image
 
-A more enjoyable 2D Canvas
+Abstraction Layer For Canvas Pixel Manipulation
