@@ -1,0 +1,40 @@
+<!doctype html>
+<html id="root" lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CanvasImage | Fiddle</title>
+  <style>
+    html, body {
+      background-color: #222;
+      color: #eee;
+      margin: 0;
+      padding: 0;
+      padding-top: 0.25em;
+    }
+
+    #container canvas {
+      display: inline-block;
+      margin: 0;
+      margin-bottom: 0.25em;
+      margin-left: 0.5em;
+      border: 1px solid #888;
+    }
+
+    #container canvas:hover {
+      border-color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div id="page">
+
+    <!-- Container for canvas elements spawned by CanvasImage -->
+    <div id="container"></div>
+
+  </div>
+
+  <script src="../lib/canvas-image.js"></script>
+  <script src="assets/js/fiddle.js"></script>
+</body>
+</html>
